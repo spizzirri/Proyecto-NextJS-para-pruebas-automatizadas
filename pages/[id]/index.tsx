@@ -5,6 +5,7 @@ import dbConnect from "@/lib/dbConnect";
 import Pet, { Pets } from "@/models/Pet";
 import { GetServerSideProps, GetServerSidePropsContext } from "next";
 import { ParsedUrlQuery } from "querystring";
+import { Model } from "mongoose";
 
 interface Params extends ParsedUrlQuery {
   id: string;
@@ -31,8 +32,10 @@ const PetPage = ({ pet }: Props) => {
     }
   };
 
+  const petId = String(pet._id);
+
   return (
-    <div key={pet._id}>
+    <div key={petId}>
       <div className="card">
         <img src={pet.image_url} />
         <h5 className="pet-name">{pet.name}</h5>
@@ -59,7 +62,7 @@ const PetPage = ({ pet }: Props) => {
           </div>
 
           <div className="btn-container">
-            <Link href={`/${pet._id}/edit`}>
+            <Link href={`/${petId}/edit`}>
               <button className="btn edit">Edit</button>
             </Link>
             <button className="btn delete" onClick={handleDelete}>
@@ -84,7 +87,8 @@ export const getServerSideProps: GetServerSideProps<Props, Params> = async ({
     };
   }
 
-  const pet = await Pet.findById(params.id).lean();
+  const PetModel = Pet as Model<Pets>;
+  const pet = await PetModel.findById(params.id).lean().exec();
 
   if (!pet) {
     return {
@@ -93,7 +97,7 @@ export const getServerSideProps: GetServerSideProps<Props, Params> = async ({
   }
 
   /* Ensures all objectIds and nested objectIds are serialized as JSON data */
-  const serializedPet = JSON.parse(JSON.stringify(pet));
+  const serializedPet = JSON.parse(JSON.stringify(pet)) as Pets;
 
   return {
     props: {
