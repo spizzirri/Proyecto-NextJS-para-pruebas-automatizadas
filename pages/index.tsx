@@ -1,20 +1,30 @@
 import Link from "next/link";
 import dbConnect from "../lib/dbConnect";
-import Pet, { Pets } from "../models/Pet";
 import { GetServerSideProps } from "next";
-import { Document, Model } from "mongoose";
+import { MongoPetRepository } from "infra/repository/MongoPetRepository";
 
-type Props = {
-  pets: Pets[];
+type PetData = {
+  id: string;
+  name: string;
+  owner_name: string;
+  species: string;
+  age?: number;
+  poddy_trained?: boolean;
+  diet?: string[];
+  image_url: string;
+  likes?: string[];
+  dislikes?: string[];
 };
 
-type PetDocument = Document<unknown, {}, Pets> & Pets & Required<{ _id: unknown }> & { __v: number };
+type Props = {
+  pets: PetData[];
+};
 
 const Index = ({ pets }: Props) => {
   return (
     <>
       {pets.map((pet) => {
-        const petId = String(pet._id);
+        const petId = String(pet.id);
         return (
           <div key={petId}>
             <div className="card">
@@ -28,7 +38,7 @@ const Index = ({ pets }: Props) => {
                 <div className="likes info">
                   <p className="label">Likes</p>
                   <ul>
-                    {pet.likes.map((data, index) => (
+                    {(pet.likes || []).map((data, index) => (
                       <li key={index}>{data} </li>
                     ))}
                   </ul>
@@ -36,7 +46,7 @@ const Index = ({ pets }: Props) => {
                 <div className="dislikes info">
                   <p className="label">Dislikes</p>
                   <ul>
-                    {pet.dislikes.map((data, index) => (
+                    {(pet.dislikes || []).map((data, index) => (
                       <li key={index}>{data} </li>
                     ))}
                   </ul>
@@ -64,14 +74,11 @@ export const getServerSideProps: GetServerSideProps<Props> = async () => {
   await dbConnect();
 
   /* find all the data in our database */
-  const PetModel = Pet as Model<Pets>;
-  const result = await PetModel.find({}).exec();
+  const petRepository = new MongoPetRepository();
+  const result = await petRepository.find({});
 
   /* Ensures all objectIds and nested objectIds are serialized as JSON data */
-  const pets = result.map((doc: PetDocument) => {
-    const pet = JSON.parse(JSON.stringify(doc)) as Pets;
-    return pet;
-  });
+  const pets = result.results.map((pet) => pet.toJSON() as PetData);
 
   return { props: { pets: pets } };
 };

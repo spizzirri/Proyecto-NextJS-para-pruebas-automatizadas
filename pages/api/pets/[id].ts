@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import dbConnect from "@/lib/dbConnect";
-import Pet, { Pets } from "@/models/Pet";
-import mongoose, { Model } from "mongoose";
+import { MongoPetRepository } from "infra/repository/MongoPetRepository";
+import { PetEntity } from "domain/models/PetEntity";
 
 export default async function handler(
   req: NextApiRequest,
@@ -16,17 +16,17 @@ export default async function handler(
 
   // Ensure id is a string
   const petId = Array.isArray(id) ? id[0] : id;
-  
+
   if (!petId || typeof petId !== "string") {
     return res.status(400).json({ success: false, error: "Invalid ID" });
   }
 
-  const PetModel = Pet as Model<Pets>;
+  const petRepository = new MongoPetRepository();
 
   switch (method) {
     case "GET" /* Get a model by its ID */:
       try {
-        const pet = await PetModel.findById(petId).exec();
+        const pet = await petRepository.findByKey(petId);
         if (!pet) {
           return res.status(400).json({ success: false });
         }
@@ -38,17 +38,12 @@ export default async function handler(
 
     case "PUT" /* Edit a model by its ID */:
       try {
-        const pet = await PetModel.findByIdAndUpdate(
-          petId,
-          req.body as Partial<Pets>,
-          {
-            new: true,
-            runValidators: true,
-          }
-        ).exec();
-        if (!pet) {
+        const existingPet = await petRepository.findByKey(petId);
+        if (!existingPet) {
           return res.status(400).json({ success: false });
         }
+        existingPet.update(req.body);
+        const pet = await petRepository.update(existingPet);
         res.status(200).json({ success: true, data: pet });
       } catch (error) {
         res.status(400).json({ success: false });
@@ -57,9 +52,8 @@ export default async function handler(
 
     case "DELETE" /* Delete a model by its ID */:
       try {
-        const objectId = new mongoose.Types.ObjectId(petId);
-        const deletedPet = await PetModel.deleteOne({ _id: objectId }).exec();
-        if (!deletedPet) {
+        const deletedCount = await petRepository.delete({ id: petId } as Partial<PetEntity>);
+        if (deletedCount === 0) {
           return res.status(400).json({ success: false });
         }
         res.status(200).json({ success: true, data: {} });

@@ -2,17 +2,29 @@ import { useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import dbConnect from "@/lib/dbConnect";
-import Pet, { Pets } from "@/models/Pet";
 import { GetServerSideProps, GetServerSidePropsContext } from "next";
 import { ParsedUrlQuery } from "querystring";
-import { Model } from "mongoose";
+import { MongoPetRepository } from "infra/repository/MongoPetRepository";
 
 interface Params extends ParsedUrlQuery {
   id: string;
 }
 
+type PetData = {
+  id: string;
+  name: string;
+  owner_name: string;
+  species: string;
+  age?: number;
+  poddy_trained?: boolean;
+  diet?: string[];
+  image_url: string;
+  likes?: string[];
+  dislikes?: string[];
+};
+
 type Props = {
-  pet: Pets;
+  pet: PetData;
 };
 
 /* Allows you to view pet card info and delete pet card*/
@@ -32,7 +44,7 @@ const PetPage = ({ pet }: Props) => {
     }
   };
 
-  const petId = String(pet._id);
+  const petId = String(pet.id);
 
   return (
     <div key={petId}>
@@ -47,7 +59,7 @@ const PetPage = ({ pet }: Props) => {
           <div className="likes info">
             <p className="label">Likes</p>
             <ul>
-              {pet.likes.map((data, index) => (
+              {(pet.likes || []).map((data, index) => (
                 <li key={index}>{data} </li>
               ))}
             </ul>
@@ -55,7 +67,7 @@ const PetPage = ({ pet }: Props) => {
           <div className="dislikes info">
             <p className="label">Dislikes</p>
             <ul>
-              {pet.dislikes.map((data, index) => (
+              {(pet.dislikes || []).map((data, index) => (
                 <li key={index}>{data} </li>
               ))}
             </ul>
@@ -87,8 +99,15 @@ export const getServerSideProps: GetServerSideProps<Props, Params> = async ({
     };
   }
 
-  const PetModel = Pet as Model<Pets>;
-  const pet = await PetModel.findById(params.id).lean().exec();
+  const petId = Array.isArray(params.id) ? params.id[0] : params.id;
+  if (!petId) {
+    return {
+      notFound: true,
+    };
+  }
+
+  const petRepository = new MongoPetRepository();
+  const pet = await petRepository.findByKey(petId);
 
   if (!pet) {
     return {
@@ -97,7 +116,7 @@ export const getServerSideProps: GetServerSideProps<Props, Params> = async ({
   }
 
   /* Ensures all objectIds and nested objectIds are serialized as JSON data */
-  const serializedPet = JSON.parse(JSON.stringify(pet)) as Pets;
+  const serializedPet = pet.toJSON() as PetData;
 
   return {
     props: {
