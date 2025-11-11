@@ -416,9 +416,33 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
             onChange={handleChange}
           />
 
-          <button type="submit" className="btn" style={{ marginTop: "auto" }}>
-            Guardar
-          </button>
+          <div style={{ display: "flex", gap: "1rem", marginTop: "auto" }}>
+            <button
+              type="submit"
+              className="btn btn-save"
+              style={{
+                flex: 1,
+                color: "#28a745",
+                border: "2px solid #28a745",
+                backgroundColor: "transparent",
+              }}
+            >
+              Guardar
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              className="btn btn-cancel"
+              style={{
+                flex: 1,
+                backgroundColor: "#dc3545",
+                color: "white",
+                border: "none",
+              }}
+            >
+              Cancelar
+            </button>
+          </div>
         </div>
       </form>
       <p>{message}</p>

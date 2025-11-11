@@ -49,3 +49,14 @@ form button {
 .form-container {
   width: 90%;
 }
+
+.btn-save:hover {
+  background-color: #28a745 !important;
+  color: white !important;
+  transition: all 0.3s ease;
+}
+
+.btn-cancel:hover {
+  background-color: #c82333 !important;
+  transition: all 0.3s ease;
+}
