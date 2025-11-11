@@ -32,6 +32,15 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
   const contentType = "application/json";
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState("");
+  const [imagePreview, setImagePreview] = useState<string | null>(
+    petForm.image_url || null
+  );
+  // Si hay una URL existente y no es base64, usar URL por defecto
+  const [useFileUpload, setUseFileUpload] = useState(
+    !petForm.image_url || petForm.image_url.startsWith("data:")
+      ? true
+      : false
+  );
 
   const [form, setForm] = useState({
     name: petForm.name,
@@ -110,6 +119,46 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
       ...form,
       [name]: value,
     });
+
+    // Actualizar preview si es image_url
+    if (name === "image_url" && !useFileUpload && typeof value === "string") {
+      setImagePreview(value);
+    }
+  };
+
+  const handleFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validar que sea una imagen
+    if (!file.type.startsWith("image/")) {
+      setMessage("Por favor, selecciona un archivo de imagen válido");
+      return;
+    }
+
+    // Validar tamaño (máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage("La imagen es demasiado grande. Máximo 5MB");
+      return;
+    }
+
+    // Convertir a base64
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      setForm({
+        ...form,
+        image_url: base64String,
+      });
+      setImagePreview(base64String);
+      setMessage("");
+    };
+    reader.onerror = () => {
+      setMessage("Error al leer el archivo");
+    };
+    reader.readAsDataURL(file);
   };
 
   /* Makes sure pet info is filled for pet name, owner name, species, and image url*/
@@ -118,7 +167,7 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
     if (!form.name) err.name = "Name is required";
     if (!form.owner_name) err.owner_name = "Owner is required";
     if (!form.species) err.species = "Species is required";
-    if (!form.image_url) err.image_url = "Image URL is required";
+    if (!form.image_url) err.image_url = "Image is required";
     return err;
   };
 
@@ -190,14 +239,92 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
           onChange={handleChange}
         />
 
-        <label htmlFor="image_url">Image URL</label>
-        <input
-          type="url"
-          name="image_url"
-          value={form.image_url}
-          onChange={handleChange}
-          required
-        />
+        <label htmlFor="image">Imagen</label>
+        <div style={{ marginBottom: "1rem" }}>
+          <div style={{ marginBottom: "0.5rem" }}>
+            <label style={{ marginRight: "1rem" }}>
+              <input
+                type="radio"
+                name="imageSource"
+                checked={useFileUpload}
+                onChange={() => {
+                  setUseFileUpload(true);
+                  setForm({ ...form, image_url: "" });
+                  setImagePreview(null);
+                }}
+              />
+              Cargar desde ordenador
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="imageSource"
+                checked={!useFileUpload}
+                onChange={() => {
+                  setUseFileUpload(false);
+                  // Si ya hay una URL en el formulario, mantenerla; si no, usar la original
+                  const currentUrl = form.image_url && !form.image_url.startsWith("data:")
+                    ? form.image_url
+                    : petForm.image_url || "";
+                  setForm({ ...form, image_url: currentUrl });
+                  setImagePreview(currentUrl || null);
+                }}
+              />
+              Usar URL
+            </label>
+          </div>
+
+          {useFileUpload ? (
+            <div>
+              <input
+                type="file"
+                name="image"
+                accept="image/*"
+                onChange={handleFileChange}
+                required={!form.image_url}
+              />
+              {imagePreview && (
+                <div style={{ marginTop: "1rem" }}>
+                  <img
+                    src={imagePreview}
+                    alt="Vista previa"
+                    style={{
+                      maxWidth: "200px",
+                      maxHeight: "200px",
+                      objectFit: "cover",
+                      borderRadius: "4px",
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          ) : (
+            <div>
+              <input
+                type="url"
+                name="image_url"
+                value={form.image_url}
+                onChange={handleChange}
+                placeholder="https://ejemplo.com/imagen.jpg"
+                required
+              />
+              {imagePreview && (
+                <div style={{ marginTop: "1rem" }}>
+                  <img
+                    src={imagePreview}
+                    alt="Vista previa"
+                    style={{
+                      maxWidth: "200px",
+                      maxHeight: "200px",
+                      objectFit: "cover",
+                      borderRadius: "4px",
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         <label htmlFor="likes">Likes</label>
         <textarea
