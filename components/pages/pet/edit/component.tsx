@@ -16,8 +16,8 @@ export default function EditPetComponent() {
     isLoading,
   } = useSWR(id ? `/api/pets/${id}` : null, fetcher);
 
-  if (error) return <p>Failed to load</p>;
-  if (isLoading) return <p>Loading...</p>;
+  if (error) return <p>Error al cargar</p>;
+  if (isLoading) return <p>Cargando...</p>;
   if (!pet) return null;
 
   const petForm = {

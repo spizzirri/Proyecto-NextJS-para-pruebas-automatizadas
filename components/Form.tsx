@@ -78,7 +78,7 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
       mutate(`/api/pets/${id}`, data, false); // Update the local data without a revalidation
       router.push("/");
     } catch (error) {
-      setMessage("Failed to update pet");
+      setMessage("Error al actualizar la mascota");
     }
   };
 
@@ -101,7 +101,7 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
 
       router.push("/");
     } catch (error) {
-      setMessage("Failed to add pet");
+      setMessage("Error al agregar la mascota");
     }
   };
 
@@ -164,10 +164,10 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
   /* Makes sure pet info is filled for pet name, owner name, species, and image url*/
   const formValidate = () => {
     let err: Error = {};
-    if (!form.name) err.name = "Name is required";
-    if (!form.owner_name) err.owner_name = "Owner is required";
-    if (!form.species) err.species = "Species is required";
-    if (!form.image_url) err.image_url = "Image is required";
+    if (!form.name) err.name = "El nombre es requerido";
+    if (!form.owner_name) err.owner_name = "El dueño es requerido";
+    if (!form.species) err.species = "La especie es requerida";
+    if (!form.image_url) err.image_url = "La imagen es requerida";
     return err;
   };
 
@@ -185,7 +185,7 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
   return (
     <>
       <form id={formId} onSubmit={handleSubmit}>
-        <label htmlFor="name">Name</label>
+        <label htmlFor="name">Nombre</label>
         <input
           type="text"
           maxLength={20}
@@ -195,7 +195,7 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
           required
         />
 
-        <label htmlFor="owner_name">Owner</label>
+        <label htmlFor="owner_name">Dueño</label>
         <input
           type="text"
           maxLength={20}
@@ -205,7 +205,7 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
           required
         />
 
-        <label htmlFor="species">Species</label>
+        <label htmlFor="species">Especie</label>
         <input
           type="text"
           maxLength={30}
@@ -215,7 +215,7 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
           required
         />
 
-        <label htmlFor="age">Age</label>
+        <label htmlFor="age">Edad</label>
         <input
           type="number"
           name="age"
@@ -223,7 +223,7 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
           onChange={handleChange}
         />
 
-        <label htmlFor="poddy_trained">Potty Trained</label>
+        <label htmlFor="poddy_trained">Entrenado para ir al baño</label>
         <input
           type="checkbox"
           name="poddy_trained"
@@ -231,7 +231,7 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
           onChange={handleChange}
         />
 
-        <label htmlFor="diet">Diet</label>
+        <label htmlFor="diet">Dieta</label>
         <textarea
           name="diet"
           maxLength={60}
@@ -326,7 +326,7 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
           )}
         </div>
 
-        <label htmlFor="likes">Likes</label>
+        <label htmlFor="likes">Gustos</label>
         <textarea
           name="likes"
           maxLength={60}
@@ -334,7 +334,7 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
           onChange={handleChange}
         />
 
-        <label htmlFor="dislikes">Dislikes</label>
+        <label htmlFor="dislikes">Disgustos</label>
         <textarea
           name="dislikes"
           maxLength={60}
@@ -343,7 +343,7 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
         />
 
         <button type="submit" className="btn">
-          Submit
+          Enviar
         </button>
       </form>
       <p>{message}</p>

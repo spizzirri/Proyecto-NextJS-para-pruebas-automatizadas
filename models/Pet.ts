@@ -18,22 +18,22 @@ const PetSchema = new mongoose.Schema<Pets>({
     /* The name of this pet */
 
     type: String,
-    required: [true, "Please provide a name for this pet."],
-    maxlength: [60, "Name cannot be more than 60 characters"],
+    required: [true, "Por favor, proporciona un nombre para esta mascota."],
+    maxlength: [60, "El nombre no puede tener más de 60 caracteres"],
   },
   owner_name: {
     /* The owner of this pet */
 
     type: String,
-    required: [true, "Please provide the pet owner's name"],
-    maxlength: [60, "Owner's Name cannot be more than 60 characters"],
+    required: [true, "Por favor, proporciona el nombre del dueño de la mascota"],
+    maxlength: [60, "El nombre del dueño no puede tener más de 60 caracteres"],
   },
   species: {
     /* The species of your pet */
 
     type: String,
-    required: [true, "Please specify the species of your pet."],
-    maxlength: [40, "Species specified cannot be more than 40 characters"],
+    required: [true, "Por favor, especifica la especie de tu mascota."],
+    maxlength: [40, "La especie especificada no puede tener más de 40 caracteres"],
   },
   age: {
     /* Pet's age, if applicable */
@@ -53,7 +53,7 @@ const PetSchema = new mongoose.Schema<Pets>({
   image_url: {
     /* Url to pet image */
 
-    required: [true, "Please provide an image url for this pet."],
+    required: [true, "Por favor, proporciona una URL de imagen para esta mascota."],
     type: String,
   },
   likes: {

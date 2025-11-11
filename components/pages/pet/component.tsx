@@ -33,7 +33,7 @@ export default function PetDetailComponent({ pet }: Props) {
       });
       router.push("/");
     } catch (error) {
-      setMessage("Failed to delete the pet.");
+      setMessage("Error al eliminar la mascota.");
     }
   };
 
@@ -44,10 +44,10 @@ export default function PetDetailComponent({ pet }: Props) {
       <PetCard pet={pet} showActions={false} />
       <div className="btn-container">
         <Link href={`/${petId}/edit`}>
-          <button className="btn edit">Edit</button>
+          <button className="btn edit">Editar</button>
         </Link>
         <button className="btn delete" onClick={handleDelete}>
-          Delete
+          Eliminar
         </button>
       </div>
       {message && <p>{message}</p>}

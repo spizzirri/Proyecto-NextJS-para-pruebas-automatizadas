@@ -7,18 +7,18 @@ const PetSchema = new Schema<PetEntity>(
   {
     name: {
       type: String,
-      required: [true, "Please provide a name for this pet."],
-      maxlength: [60, "Name cannot be more than 60 characters"],
+      required: [true, "Por favor, proporciona un nombre para esta mascota."],
+      maxlength: [60, "El nombre no puede tener más de 60 caracteres"],
     },
     owner_name: {
       type: String,
-      required: [true, "Please provide the pet owner's name"],
-      maxlength: [60, "Owner's Name cannot be more than 60 characters"],
+      required: [true, "Por favor, proporciona el nombre del dueño de la mascota"],
+      maxlength: [60, "El nombre del dueño no puede tener más de 60 caracteres"],
     },
     species: {
       type: String,
-      required: [true, "Please specify the species of your pet."],
-      maxlength: [40, "Species specified cannot be more than 40 characters"],
+      required: [true, "Por favor, especifica la especie de tu mascota."],
+      maxlength: [40, "La especie especificada no puede tener más de 40 caracteres"],
     },
     age: {
       type: Number,
@@ -31,7 +31,7 @@ const PetSchema = new Schema<PetEntity>(
     },
     image_url: {
       type: String,
-      required: [true, "Please provide an image url for this pet."],
+      required: [true, "Por favor, proporciona una URL de imagen para esta mascota."],
     },
     likes: {
       type: [String],
