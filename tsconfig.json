@@ -24,7 +24,8 @@
       "@/*": ["./*"],
       "domain/*": ["./domain/*"],
       "infra/*": ["./infra/*"],
-      "services/*": ["./services/*"]
+      "services/*": ["./services/*"],
+      "pages/*": ["./components/pages/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
