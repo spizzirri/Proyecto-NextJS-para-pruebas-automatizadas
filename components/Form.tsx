@@ -32,11 +32,15 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
   const contentType = "application/json";
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState("");
-  // Array de imágenes en base64
-  const [images, setImages] = useState<string[]>(() => {
+  // Array de imágenes con nombre y datos base64
+  interface ImageData {
+    name: string;
+    data: string; // base64
+  }
+  const [images, setImages] = useState<ImageData[]>(() => {
     // Si hay una imagen existente (base64 o URL), incluirla
     if (petForm.image_url) {
-      return [petForm.image_url];
+      return [{ name: "Imagen existente", data: petForm.image_url }];
     }
     return [];
   });
@@ -131,11 +135,22 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    // Procesar cada archivo seleccionado
-    const newImages: string[] = [];
-    let hasError = false;
+    // Verificar límite de 4 imágenes
+    if (images.length >= 4) {
+      setMessage("Máximo 4 imágenes permitidas");
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      return;
+    }
 
-    for (let i = 0; i < files.length; i++) {
+    // Procesar cada archivo seleccionado
+    const newImages: ImageData[] = [];
+    let hasError = false;
+    const maxImages = 4;
+    const remainingSlots = maxImages - images.length;
+
+    for (let i = 0; i < Math.min(files.length, remainingSlots); i++) {
       const file = files[i];
       if (!file) continue;
 
@@ -158,7 +173,10 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
       await new Promise<void>((resolve, reject) => {
         reader.onloadend = () => {
           const base64String = reader.result as string;
-          newImages.push(base64String);
+          newImages.push({
+            name: file.name,
+            data: base64String,
+          });
           resolve();
         };
         reader.onerror = () => {
@@ -169,15 +187,21 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
       });
     }
 
+    if (files.length > remainingSlots) {
+      setMessage(`Solo se pueden agregar ${remainingSlots} imagen(es) más. Máximo 4 imágenes.`);
+    }
+
     if (!hasError && newImages.length > 0) {
       const updatedImages = [...images, ...newImages];
       setImages(updatedImages);
       // Actualizar image_url con la primera imagen (para compatibilidad)
       setForm({
         ...form,
-        image_url: updatedImages[0] || "",
+        image_url: updatedImages[0]?.data || "",
       });
-      setMessage("");
+      if (files.length <= remainingSlots) {
+        setMessage("");
+      }
     }
 
     // Limpiar el input para permitir seleccionar el mismo archivo de nuevo
@@ -190,7 +214,7 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
     const newImages = images.filter((_, i) => i !== index);
     setImages(newImages);
     // Actualizar image_url con la primera imagen restante o cadena vacía
-    const firstImage = newImages.length > 0 && newImages[0] ? newImages[0] : "";
+    const firstImage = newImages.length > 0 && newImages[0] ? newImages[0].data : "";
     setForm({
       ...form,
       image_url: firstImage,
@@ -213,7 +237,7 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
 
     if (Object.keys(errs).length === 0) {
       // Asegurar que image_url tenga la primera imagen (siempre habrá al menos una por la validación)
-      const firstImage = images.length > 0 && images[0] ? images[0] : "";
+      const firstImage = images.length > 0 && images[0] ? images[0].data : "";
       const formToSubmit: FormData = {
         ...form,
         image_url: firstImage,
@@ -226,165 +250,176 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
 
   return (
     <>
-      <form id={formId} onSubmit={handleSubmit}>
-        <label htmlFor="name">Nombre</label>
-        <input
-          type="text"
-          maxLength={20}
-          name="name"
-          value={form.name}
-          onChange={handleChange}
-          required
-        />
-
-        <label htmlFor="owner_name">Dueño</label>
-        <input
-          type="text"
-          maxLength={20}
-          name="owner_name"
-          value={form.owner_name}
-          onChange={handleChange}
-          required
-        />
-
-        <label htmlFor="species">Especie</label>
-        <input
-          type="text"
-          maxLength={30}
-          name="species"
-          value={form.species}
-          onChange={handleChange}
-          required
-        />
-
-        <label htmlFor="age">Edad</label>
-        <input
-          type="number"
-          name="age"
-          value={form.age}
-          onChange={handleChange}
-        />
-
-        <label htmlFor="poddy_trained">Entrenado para ir al baño</label>
-        <input
-          type="checkbox"
-          name="poddy_trained"
-          checked={form.poddy_trained}
-          onChange={handleChange}
-        />
-
-        <label htmlFor="diet">Dieta</label>
-        <textarea
-          name="diet"
-          maxLength={60}
-          value={form.diet}
-          onChange={handleChange}
-        />
-
-        <label htmlFor="image">Imágenes</label>
-        <div style={{ marginBottom: "1rem" }}>
+      <form id={formId} onSubmit={handleSubmit} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem" }}>
+        {/* Columna 1: Nombre a Dieta */}
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <label htmlFor="name">Nombre</label>
           <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            multiple
-            style={{ display: "none" }}
+            type="text"
+            maxLength={20}
+            name="name"
+            value={form.name}
+            onChange={handleChange}
+            required
           />
-          <button
-            type="button"
-            onClick={handleAddImageClick}
-            className="btn"
-            style={{
-              marginBottom: "1rem",
-              backgroundColor: "#4CAF50",
-              color: "white",
-              border: "none",
-              padding: "10px 20px",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
-          >
-            Agregar imagen
-          </button>
 
-          {images.length > 0 && (
-            <div
+          <label htmlFor="owner_name">Dueño</label>
+          <input
+            type="text"
+            maxLength={20}
+            name="owner_name"
+            value={form.owner_name}
+            onChange={handleChange}
+            required
+          />
+
+          <label htmlFor="species">Especie</label>
+          <input
+            type="text"
+            maxLength={30}
+            name="species"
+            value={form.species}
+            onChange={handleChange}
+            required
+          />
+
+          <label htmlFor="age">Edad</label>
+          <input
+            type="number"
+            name="age"
+            value={form.age}
+            onChange={handleChange}
+          />
+
+          <label htmlFor="poddy_trained">Entrenado para ir al baño</label>
+          <input
+            type="checkbox"
+            name="poddy_trained"
+            checked={form.poddy_trained}
+            onChange={handleChange}
+          />
+
+          <label htmlFor="diet">Dieta</label>
+          <textarea
+            name="diet"
+            maxLength={60}
+            value={form.diet}
+            onChange={handleChange}
+          />
+        </div>
+
+        {/* Columna 2: Imágenes, Gustos, Disgustos, Botón */}
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <label htmlFor="image">Imágenes</label>
+          <div style={{ marginBottom: "1rem" }}>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              multiple
+              style={{ display: "none" }}
+            />
+            <button
+              type="button"
+              onClick={handleAddImageClick}
+              className="btn"
+              disabled={images.length >= 4}
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-                gap: "1rem",
-                marginTop: "1rem",
+                marginBottom: "1rem",
+                backgroundColor: images.length >= 4 ? "#cccccc" : "#4CAF50",
+                color: "white",
+                border: "none",
+                padding: "10px 20px",
+                borderRadius: "4px",
+                cursor: images.length >= 4 ? "not-allowed" : "pointer",
+                opacity: images.length >= 4 ? 0.6 : 1,
               }}
             >
-              {images.map((image, index) => (
-                <div
-                  key={index}
-                  style={{
-                    position: "relative",
-                    display: "inline-block",
-                  }}
-                >
-                  <img
-                    src={image}
-                    alt={`Vista previa ${index + 1}`}
+              Agregar imagen {images.length >= 4 ? "(Máximo 4)" : ""}
+            </button>
+
+            {images.length > 0 && (
+              <ul
+                style={{
+                  listStyle: "none",
+                  padding: 0,
+                  margin: "1rem 0 0 0",
+                }}
+              >
+                {images.map((image, index) => (
+                  <li
+                    key={index}
                     style={{
-                      width: "100%",
-                      maxWidth: "200px",
-                      height: "200px",
-                      objectFit: "cover",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "0.5rem",
+                      marginBottom: "0.5rem",
+                      backgroundColor: "#f5f5f5",
                       borderRadius: "4px",
                       border: "1px solid #ddd",
                     }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveImage(index)}
-                    style={{
-                      position: "absolute",
-                      top: "5px",
-                      right: "5px",
-                      backgroundColor: "rgba(255, 0, 0, 0.8)",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "50%",
-                      width: "30px",
-                      height: "30px",
-                      cursor: "pointer",
-                      fontSize: "18px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                    title="Eliminar imagen"
                   >
-                    🗑️
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
+                    <span
+                      style={{
+                        flex: 1,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        marginRight: "0.5rem",
+                      }}
+                      title={image.name}
+                    >
+                      {image.name}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(index)}
+                      style={{
+                        backgroundColor: "rgba(255, 0, 0, 0.8)",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "4px",
+                        width: "30px",
+                        height: "30px",
+                        cursor: "pointer",
+                        fontSize: "18px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                      title="Eliminar imagen"
+                    >
+                      🗑️
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <label htmlFor="likes">Gustos</label>
+          <textarea
+            name="likes"
+            maxLength={60}
+            value={form.likes}
+            onChange={handleChange}
+          />
+
+          <label htmlFor="dislikes">Disgustos</label>
+          <textarea
+            name="dislikes"
+            maxLength={60}
+            value={form.dislikes}
+            onChange={handleChange}
+          />
+
+          <button type="submit" className="btn" style={{ marginTop: "auto" }}>
+            Guardar
+          </button>
         </div>
-
-        <label htmlFor="likes">Gustos</label>
-        <textarea
-          name="likes"
-          maxLength={60}
-          value={form.likes}
-          onChange={handleChange}
-        />
-
-        <label htmlFor="dislikes">Disgustos</label>
-        <textarea
-          name="dislikes"
-          maxLength={60}
-          value={form.dislikes}
-          onChange={handleChange}
-        />
-
-        <button type="submit" className="btn">
-          Enviar
-        </button>
       </form>
       <p>{message}</p>
       <div>
