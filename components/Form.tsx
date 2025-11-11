@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/router";
 import { mutate } from "swr";
 
@@ -32,15 +32,15 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
   const contentType = "application/json";
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState("");
-  const [imagePreview, setImagePreview] = useState<string | null>(
-    petForm.image_url || null
-  );
-  // Si hay una URL existente y no es base64, usar URL por defecto
-  const [useFileUpload, setUseFileUpload] = useState(
-    !petForm.image_url || petForm.image_url.startsWith("data:")
-      ? true
-      : false
-  );
+  // Array de imágenes en base64
+  const [images, setImages] = useState<string[]>(() => {
+    // Si hay una imagen existente (base64 o URL), incluirla
+    if (petForm.image_url) {
+      return [petForm.image_url];
+    }
+    return [];
+  });
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     name: petForm.name,
@@ -119,46 +119,82 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
       ...form,
       [name]: value,
     });
+  };
 
-    // Actualizar preview si es image_url
-    if (name === "image_url" && !useFileUpload && typeof value === "string") {
-      setImagePreview(value);
-    }
+  const handleAddImageClick = () => {
+    fileInputRef.current?.click();
   };
 
   const handleFileChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-    // Validar que sea una imagen
-    if (!file.type.startsWith("image/")) {
-      setMessage("Por favor, selecciona un archivo de imagen válido");
-      return;
+    // Procesar cada archivo seleccionado
+    const newImages: string[] = [];
+    let hasError = false;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (!file) continue;
+
+      // Validar que sea una imagen
+      if (!file.type.startsWith("image/")) {
+        setMessage("Por favor, selecciona solo archivos de imagen válidos");
+        hasError = true;
+        continue;
+      }
+
+      // Validar tamaño (máximo 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setMessage("Una o más imágenes son demasiado grandes. Máximo 5MB por imagen");
+        hasError = true;
+        continue;
+      }
+
+      // Convertir a base64
+      const reader = new FileReader();
+      await new Promise<void>((resolve, reject) => {
+        reader.onloadend = () => {
+          const base64String = reader.result as string;
+          newImages.push(base64String);
+          resolve();
+        };
+        reader.onerror = () => {
+          setMessage("Error al leer uno o más archivos");
+          reject();
+        };
+        reader.readAsDataURL(file);
+      });
     }
 
-    // Validar tamaño (máximo 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setMessage("La imagen es demasiado grande. Máximo 5MB");
-      return;
-    }
-
-    // Convertir a base64
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
+    if (!hasError && newImages.length > 0) {
+      const updatedImages = [...images, ...newImages];
+      setImages(updatedImages);
+      // Actualizar image_url con la primera imagen (para compatibilidad)
       setForm({
         ...form,
-        image_url: base64String,
+        image_url: updatedImages[0] || "",
       });
-      setImagePreview(base64String);
       setMessage("");
-    };
-    reader.onerror = () => {
-      setMessage("Error al leer el archivo");
-    };
-    reader.readAsDataURL(file);
+    }
+
+    // Limpiar el input para permitir seleccionar el mismo archivo de nuevo
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    const newImages = images.filter((_, i) => i !== index);
+    setImages(newImages);
+    // Actualizar image_url con la primera imagen restante o cadena vacía
+    const firstImage = newImages.length > 0 && newImages[0] ? newImages[0] : "";
+    setForm({
+      ...form,
+      image_url: firstImage,
+    });
   };
 
   /* Makes sure pet info is filled for pet name, owner name, species, and image url*/
@@ -167,7 +203,7 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
     if (!form.name) err.name = "El nombre es requerido";
     if (!form.owner_name) err.owner_name = "El dueño es requerido";
     if (!form.species) err.species = "La especie es requerida";
-    if (!form.image_url) err.image_url = "La imagen es requerida";
+    if (images.length === 0) err.image_url = "Al menos una imagen es requerida";
     return err;
   };
 
@@ -176,7 +212,13 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
     const errs = formValidate();
 
     if (Object.keys(errs).length === 0) {
-      forNewPet ? postData(form) : putData(form);
+      // Asegurar que image_url tenga la primera imagen (siempre habrá al menos una por la validación)
+      const firstImage = images.length > 0 && images[0] ? images[0] : "";
+      const formToSubmit: FormData = {
+        ...form,
+        image_url: firstImage,
+      };
+      forNewPet ? postData(formToSubmit) : putData(formToSubmit);
     } else {
       setErrors({ errs });
     }
@@ -239,89 +281,87 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
           onChange={handleChange}
         />
 
-        <label htmlFor="image">Imagen</label>
+        <label htmlFor="image">Imágenes</label>
         <div style={{ marginBottom: "1rem" }}>
-          <div style={{ marginBottom: "0.5rem" }}>
-            <label style={{ marginRight: "1rem" }}>
-              <input
-                type="radio"
-                name="imageSource"
-                checked={useFileUpload}
-                onChange={() => {
-                  setUseFileUpload(true);
-                  setForm({ ...form, image_url: "" });
-                  setImagePreview(null);
-                }}
-              />
-              Cargar desde ordenador
-            </label>
-            <label>
-              <input
-                type="radio"
-                name="imageSource"
-                checked={!useFileUpload}
-                onChange={() => {
-                  setUseFileUpload(false);
-                  // Si ya hay una URL en el formulario, mantenerla; si no, usar la original
-                  const currentUrl = form.image_url && !form.image_url.startsWith("data:")
-                    ? form.image_url
-                    : petForm.image_url || "";
-                  setForm({ ...form, image_url: currentUrl });
-                  setImagePreview(currentUrl || null);
-                }}
-              />
-              Usar URL
-            </label>
-          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            multiple
+            style={{ display: "none" }}
+          />
+          <button
+            type="button"
+            onClick={handleAddImageClick}
+            className="btn"
+            style={{
+              marginBottom: "1rem",
+              backgroundColor: "#4CAF50",
+              color: "white",
+              border: "none",
+              padding: "10px 20px",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            Agregar imagen
+          </button>
 
-          {useFileUpload ? (
-            <div>
-              <input
-                type="file"
-                name="image"
-                accept="image/*"
-                onChange={handleFileChange}
-                required={!form.image_url}
-              />
-              {imagePreview && (
-                <div style={{ marginTop: "1rem" }}>
+          {images.length > 0 && (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+                gap: "1rem",
+                marginTop: "1rem",
+              }}
+            >
+              {images.map((image, index) => (
+                <div
+                  key={index}
+                  style={{
+                    position: "relative",
+                    display: "inline-block",
+                  }}
+                >
                   <img
-                    src={imagePreview}
-                    alt="Vista previa"
+                    src={image}
+                    alt={`Vista previa ${index + 1}`}
                     style={{
+                      width: "100%",
                       maxWidth: "200px",
-                      maxHeight: "200px",
+                      height: "200px",
                       objectFit: "cover",
                       borderRadius: "4px",
+                      border: "1px solid #ddd",
                     }}
                   />
-                </div>
-              )}
-            </div>
-          ) : (
-            <div>
-              <input
-                type="url"
-                name="image_url"
-                value={form.image_url}
-                onChange={handleChange}
-                placeholder="https://ejemplo.com/imagen.jpg"
-                required
-              />
-              {imagePreview && (
-                <div style={{ marginTop: "1rem" }}>
-                  <img
-                    src={imagePreview}
-                    alt="Vista previa"
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveImage(index)}
                     style={{
-                      maxWidth: "200px",
-                      maxHeight: "200px",
-                      objectFit: "cover",
-                      borderRadius: "4px",
+                      position: "absolute",
+                      top: "5px",
+                      right: "5px",
+                      backgroundColor: "rgba(255, 0, 0, 0.8)",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "50%",
+                      width: "30px",
+                      height: "30px",
+                      cursor: "pointer",
+                      fontSize: "18px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
-                  />
+                    title="Eliminar imagen"
+                  >
+                    🗑️
+                  </button>
                 </div>
-              )}
+              ))}
             </div>
           )}
         </div>
