@@ -294,7 +294,7 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
     <>
       <form id={formId} onSubmit={handleSubmit} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem" }}>
         {/* Columna 1: Nombre a Dieta */}
-        <div style={{ display: "flex", flexDirection: "column" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.2em" }}>
           <label htmlFor="name">Nombre</label>
           <input
             type="text"
@@ -358,7 +358,7 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
         </div>
 
         {/* Columna 2: Imágenes, Gustos, Disgustos, Botón */}
-        <div style={{ display: "flex", flexDirection: "column" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.2em" }}>
           <label htmlFor="image">Imágenes</label>
           <div style={{ marginBottom: "1rem" }}>
             <input
