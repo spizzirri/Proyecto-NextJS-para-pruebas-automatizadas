@@ -9,6 +9,7 @@ type PetData = {
   poddy_trained?: boolean;
   diet?: string[];
   image_url: string;
+  images?: string[];
   likes?: string[];
   dislikes?: string[];
 };
@@ -21,7 +22,7 @@ export default function HomeComponent({ pets }: Props) {
   return (
     <>
       {pets.map((pet) => (
-        <PetCard key={pet.id} pet={pet} showActions={true} />
+        <PetCard key={pet.id} pet={pet} showActions={true} showAllImages={false} />
       ))}
     </>
   );

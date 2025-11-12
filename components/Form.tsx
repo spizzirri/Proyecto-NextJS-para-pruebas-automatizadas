@@ -9,7 +9,8 @@ interface FormData {
   age: number;
   poddy_trained: boolean;
   diet: string[];
-  image_url: string;
+  image_url: string[]; // Cambiar a array
+  images?: string[];
   likes: string[];
   dislikes: string[];
 }
@@ -38,8 +39,22 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
     data: string; // base64
   }
   const [images, setImages] = useState<ImageData[]>(() => {
-    // Si hay una imagen existente (base64 o URL), incluirla
-    if (petForm.image_url) {
+    // Si hay imágenes guardadas, usarlas
+    if (petForm.images && petForm.images.length > 0) {
+      return petForm.images.map((img, index) => ({
+        name: `Imagen ${index + 1}`,
+        data: img,
+      }));
+    }
+    // Si image_url es un array con imágenes, usarlas
+    if (Array.isArray(petForm.image_url) && petForm.image_url.length > 0) {
+      return petForm.image_url.map((img, index) => ({
+        name: `Imagen ${index + 1}`,
+        data: img,
+      }));
+    }
+    // Si image_url es un string (compatibilidad hacia atrás), convertirlo a array
+    if (petForm.image_url && typeof petForm.image_url === 'string') {
       return [{ name: "Imagen existente", data: petForm.image_url }];
     }
     return [];
@@ -53,7 +68,12 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
     age: petForm.age,
     poddy_trained: petForm.poddy_trained,
     diet: petForm.diet,
-    image_url: petForm.image_url,
+    // Asegurar que image_url siempre sea un array
+    image_url: Array.isArray(petForm.image_url) 
+      ? petForm.image_url 
+      : (petForm.image_url && typeof petForm.image_url === 'string' 
+          ? [petForm.image_url] 
+          : []),
     likes: petForm.likes,
     dislikes: petForm.dislikes,
   });
@@ -89,6 +109,10 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
   /* The POST method adds a new entry in the mongodb database. */
   const postData = async (form: FormData) => {
     try {
+      console.log("Form.postData - Enviando form:", form);
+      console.log("Form.postData - form.image_url:", form.image_url);
+      console.log("Form.postData - form.images:", form.images);
+      
       const res = await fetch("/api/pets", {
         method: "POST",
         headers: {
@@ -100,12 +124,17 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
 
       // Throw error with status code in case Fetch API req failed
       if (!res.ok) {
-        throw new Error(res.status.toString());
+        const errorData = await res.json().catch(() => ({}));
+        console.error("Form.postData - Error response:", errorData);
+        throw new Error(errorData.error || errorData.message || `Error ${res.status}`);
       }
 
+      const { data } = await res.json();
+      mutate("/api/pets", data, false); // Update the local data without a revalidation
       router.push("/");
-    } catch (error) {
-      setMessage("Error al agregar la mascota");
+    } catch (error: any) {
+      console.error("Form.postData - Error completo:", error);
+      setMessage(error?.message || "Error al agregar la mascota");
     }
   };
 
@@ -194,10 +223,10 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
     if (!hasError && newImages.length > 0) {
       const updatedImages = [...images, ...newImages];
       setImages(updatedImages);
-      // Actualizar image_url con la primera imagen (para compatibilidad)
+      // Actualizar image_url con todas las imágenes como array
       setForm({
         ...form,
-        image_url: updatedImages[0]?.data || "",
+        image_url: updatedImages.map(img => img.data),
       });
       if (files.length <= remainingSlots) {
         setMessage("");
@@ -213,11 +242,11 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
   const handleRemoveImage = (index: number) => {
     const newImages = images.filter((_, i) => i !== index);
     setImages(newImages);
-    // Actualizar image_url con la primera imagen restante o cadena vacía
-    const firstImage = newImages.length > 0 && newImages[0] ? newImages[0].data : "";
+    // Actualizar image_url con todas las imágenes restantes como array
+    const remainingImages = newImages.map(img => img.data);
     setForm({
       ...form,
-      image_url: firstImage,
+      image_url: remainingImages,
     });
   };
 
@@ -227,7 +256,9 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
     if (!form.name) err.name = "El nombre es requerido";
     if (!form.owner_name) err.owner_name = "El dueño es requerido";
     if (!form.species) err.species = "La especie es requerida";
-    if (images.length === 0) err.image_url = "Al menos una imagen es requerida";
+    // Validar que haya al menos una imagen (puede estar en images o en image_url)
+    const hasImages = images.length > 0 || (Array.isArray(form.image_url) && form.image_url.length > 0);
+    if (!hasImages) err.image_url = "Al menos una imagen es requerida";
     return err;
   };
 
@@ -236,12 +267,16 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
     const errs = formValidate();
 
     if (Object.keys(errs).length === 0) {
-      // Asegurar que image_url tenga la primera imagen (siempre habrá al menos una por la validación)
-      const firstImage = images.length > 0 && images[0] ? images[0].data : "";
+      // Guardar todas las imágenes en el array images
+      const allImages = images.map((img) => img.data);
+      // image_url también debe ser un array con todas las imágenes
       const formToSubmit: FormData = {
         ...form,
-        image_url: firstImage,
+        image_url: allImages, // image_url es ahora un array
+        images: allImages,
       };
+      console.log("Form - Enviando imágenes:", allImages.length, allImages);
+      console.log("Form - image_url (array):", allImages);
       forNewPet ? postData(formToSubmit) : putData(formToSubmit);
     } else {
       setErrors({ errs });

@@ -12,6 +12,7 @@ type PetData = {
   poddy_trained?: boolean;
   diet?: string[];
   image_url: string;
+  images?: string[];
   likes?: string[];
   dislikes?: string[];
 };

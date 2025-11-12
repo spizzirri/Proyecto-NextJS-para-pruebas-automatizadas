@@ -28,6 +28,7 @@ export default function EditPetComponent() {
     poddy_trained: pet.poddy_trained,
     diet: pet.diet,
     image_url: pet.image_url,
+    images: pet.images,
     likes: pet.likes,
     dislikes: pet.dislikes,
   };

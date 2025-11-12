@@ -30,22 +30,33 @@ export default async function handler(
         if (!pet) {
           return res.status(400).json({ success: false });
         }
-        res.status(200).json({ success: true, data: pet });
+        console.log("API GET - pet.images:", pet.images);
+        const petData = pet.toJSON();
+        console.log("API GET - petData.images:", petData.images);
+        res.status(200).json({ success: true, data: petData });
       } catch (error) {
+        console.error("API GET - Error:", error);
         res.status(400).json({ success: false });
       }
       break;
 
     case "PUT" /* Edit a model by its ID */:
       try {
+        console.log("API PUT - req.body.images:", req.body.images);
         const existingPet = await petRepository.findByKey(petId);
         if (!existingPet) {
           return res.status(400).json({ success: false });
         }
+        console.log("API PUT - existingPet.images antes:", existingPet.images);
         existingPet.update(req.body);
+        console.log("API PUT - existingPet.images después:", existingPet.images);
         const pet = await petRepository.update(existingPet);
-        res.status(200).json({ success: true, data: pet });
+        console.log("API PUT - pet guardado.images:", pet.images);
+        const petData = pet.toJSON();
+        console.log("API PUT - petData.images:", petData.images);
+        res.status(200).json({ success: true, data: petData });
       } catch (error) {
+        console.error("API PUT - Error:", error);
         res.status(400).json({ success: false });
       }
       break;

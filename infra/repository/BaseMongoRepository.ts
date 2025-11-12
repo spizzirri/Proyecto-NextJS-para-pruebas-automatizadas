@@ -29,15 +29,41 @@ class BaseMongoRepository<T extends EntityModel> implements IRepository<T> {
 
   async create(entity: T): Promise<T> {
     try {
-      const model = new this.model(this.mapToPersistence(entity));
+      const persistenceData = this.mapToPersistence(entity);
+      console.log("BaseMongoRepository.create - persistenceData completo:", JSON.stringify(persistenceData, null, 2).substring(0, 1000));
+      console.log("BaseMongoRepository.create - persistenceData.images:", persistenceData.images);
+      console.log("BaseMongoRepository.create - ¿images en persistenceData?:", 'images' in persistenceData);
+      
+      // Verificar que images esté presente antes de guardar
+      if (!('images' in persistenceData)) {
+        console.warn("BaseMongoRepository.create - WARNING: images no está en persistenceData, agregándolo...");
+        persistenceData.images = (entity as any).images || [];
+      }
+      
+      // Verificar que image_url esté presente y tenga al menos un elemento
+      if (!('image_url' in persistenceData) || !Array.isArray(persistenceData.image_url) || persistenceData.image_url.length === 0) {
+        console.warn("BaseMongoRepository.create - WARNING: image_url no es válido, usando images...");
+        const imagesArray = (entity as any).images || [];
+        persistenceData.image_url = imagesArray.length > 0 ? imagesArray : [];
+      }
+      
+      console.log("BaseMongoRepository.create - persistenceData.image_url antes de crear modelo:", persistenceData.image_url);
+      console.log("BaseMongoRepository.create - persistenceData.images antes de crear modelo:", persistenceData.images);
+      
+      const model = new this.model(persistenceData);
+      console.log("BaseMongoRepository.create - model.images antes de save:", model.images);
       const record = await model.save();
+      console.log("BaseMongoRepository.create - record guardado.images:", record.images);
+      console.log("BaseMongoRepository.create - record completo:", JSON.stringify(record.toObject(), null, 2).substring(0, 1000));
 
       entity.markAsCreated();
       await entity.commit();
 
-      return this.mapToEntity(record);
+      const mappedEntity = this.mapToEntity(record);
+      console.log("BaseMongoRepository.create - mappedEntity.images:", (mappedEntity as any).images);
+      return mappedEntity;
     } catch (err) {
-      console.error(err);
+      console.error("BaseMongoRepository.create - Error completo:", err);
       throw new MongoDBException(
         `[create] Error: ${JSON.stringify(err)}`
       );
@@ -107,11 +133,14 @@ class BaseMongoRepository<T extends EntityModel> implements IRepository<T> {
   async update(entity: T): Promise<T> {
     if (!entity.isDirty()) return entity;
 
+    const persistenceData = this.mapToPersistence(entity);
+    console.log("BaseMongoRepository.update - persistenceData.images:", persistenceData.images);
+    
     const updated = await this.model.updateOne(
       this.isCustomId ? { _id: entity.id } : { id: entity.id },
       {
         $inc: { __v: 1 },
-        ...this.mapToPersistence(entity),
+        $set: persistenceData,
       }
     );
     if (!updated.modifiedCount)
@@ -120,7 +149,13 @@ class BaseMongoRepository<T extends EntityModel> implements IRepository<T> {
       );
     await entity.commit();
 
-    return entity;
+    // Recuperar la entidad actualizada de la base de datos
+    const updatedEntity = await this.findByKey(entity.id);
+    if (!updatedEntity) {
+      throw new MongoDBException(`[update] Could not retrieve updated entity ${entity.id}`);
+    }
+    console.log("BaseMongoRepository.update - updatedEntity.images:", (updatedEntity as any).images);
+    return updatedEntity;
   }
 
   async delete(where: Partial<T>, force?: boolean): Promise<number> {
@@ -152,27 +187,66 @@ class BaseMongoRepository<T extends EntityModel> implements IRepository<T> {
 
   protected mapToPersistence(entity: T): any {
     if (this.isCustomId) {
-      const { id, ...rest } = entity as any;
+      // Usar toJSON() para obtener todas las propiedades serializadas
+      const entityData = entity.toJSON();
+      const { id, ...rest } = entityData;
       // Only include _id if it's a valid non-empty value
       // If id is empty or invalid, let MongoDB generate it automatically
-      if (id && (typeof id === "string" ? mongoose.Types.ObjectId.isValid(id) : true)) {
-        return { ...rest, _id: id };
+      const result = id && (typeof id === "string" ? mongoose.Types.ObjectId.isValid(id) : true)
+        ? { ...rest, _id: id }
+        : rest;
+      
+      // Asegurar que images siempre esté presente explícitamente
+      // Acceder directamente a la propiedad de la entidad para asegurar que se incluya
+      // Esto es crítico porque puede que no esté en toJSON() si getSubclassKeys() no lo detecta
+      const imagesValue = (entity as any).images;
+      if (Array.isArray(imagesValue)) {
+        result.images = imagesValue;
+      } else {
+        result.images = [];
       }
-      // Return without _id to let MongoDB auto-generate it
-      return rest;
+      
+      // Asegurar que image_url siempre sea un array
+      const imageUrlValue = (entity as any).image_url;
+      if (Array.isArray(imageUrlValue)) {
+        result.image_url = imageUrlValue;
+      } else if (imageUrlValue) {
+        result.image_url = [imageUrlValue];
+      } else {
+        result.image_url = [];
+      }
+      
+      console.log("mapToPersistence - entity.images (directo):", imagesValue);
+      console.log("mapToPersistence - entity.image_url (directo):", imageUrlValue);
+      console.log("mapToPersistence - result.images:", result.images);
+      console.log("mapToPersistence - result.image_url:", result.image_url);
+      console.log("mapToPersistence - result keys:", Object.keys(result));
+      return result;
     }
-    return entity;
+    const json = entity.toJSON();
+    const imagesValue = (entity as any).images;
+    if (Array.isArray(imagesValue)) {
+      json.images = imagesValue;
+    } else {
+      json.images = [];
+    }
+    console.log("mapToPersistence - json.images:", json.images);
+    return json;
   }
 
   protected mapToEntity(data: any): T {
     if (this.isCustomId) {
       const { _id, ...object } = Object.assign({}, data.toObject());
+      console.log("BaseMongoRepository.mapToEntity - object.images:", object.images);
       // Convert _id (which may be an ObjectId) to string
       const idString = _id ? String(_id) : "";
       const entity = new this.entityConstructor({ ...object, id: idString });
+      console.log("BaseMongoRepository.mapToEntity - entity.images:", (entity as any).images);
       return entity;
     }
-    return new this.entityConstructor(Object.assign({}, data.toObject()));
+    const obj = Object.assign({}, data.toObject());
+    console.log("BaseMongoRepository.mapToEntity - obj.images:", obj.images);
+    return new this.entityConstructor(obj);
   }
 
   private transformWhere(where: Partial<T>): FilterQuery<T> {

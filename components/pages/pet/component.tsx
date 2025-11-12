@@ -12,6 +12,7 @@ type PetData = {
   poddy_trained?: boolean;
   diet?: string[];
   image_url: string;
+  images?: string[];
   likes?: string[];
   dislikes?: string[];
 };
@@ -41,7 +42,7 @@ export default function PetDetailComponent({ pet }: Props) {
 
   return (
     <>
-      <PetCard pet={pet} showActions={false} />
+      <PetCard pet={pet} showActions={false} showAllImages={true} />
       <div className="btn-container">
         <Link href={`/${petId}/edit`}>
           <button className="btn edit">Editar</button>

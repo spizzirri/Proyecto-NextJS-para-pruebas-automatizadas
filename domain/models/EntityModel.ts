@@ -37,14 +37,33 @@ abstract class EntityModel {
       const newValue = data[key];
       const oldValue = this[key];
 
-      const hasChanged =
-        newValue instanceof Date && oldValue instanceof Date
-          ? newValue.getTime() !== oldValue.getTime()
-          : newValue !== oldValue;
+      // Si el nuevo valor es undefined, no actualizar
+      if (newValue === undefined) {
+        continue;
+      }
+
+      // Para arrays, comparar por contenido o referencia
+      let hasChanged: boolean;
+      if (Array.isArray(newValue)) {
+        if (Array.isArray(oldValue)) {
+          // Comparar arrays por longitud y contenido
+          hasChanged = 
+            newValue.length !== oldValue.length ||
+            newValue.some((val, idx) => val !== oldValue[idx]);
+        } else {
+          // Si no existe el array anterior o es undefined/null, siempre actualizar
+          hasChanged = true;
+        }
+      } else if (newValue instanceof Date && oldValue instanceof Date) {
+        hasChanged = newValue.getTime() !== oldValue.getTime();
+      } else {
+        hasChanged = newValue !== oldValue;
+      }
 
       if (hasChanged) {
         (this[key] as any) = newValue;
         this._dirty = true;
+        console.log(`EntityModel.update - Campo ${String(key)} actualizado:`, newValue);
       }
     }
 
@@ -79,6 +98,17 @@ abstract class EntityModel {
         state[key] = value;
       }
     }
+    
+    // Asegurar que campos específicos siempre estén incluidos (para PetEntity)
+    if (this.entityName === "Pet") {
+      const petEntity = this as any;
+      if (!('images' in state)) {
+        state.images = petEntity.images || [];
+      }
+    }
+    
+    console.log("EntityModel.getPublicState - keys:", keys);
+    console.log("EntityModel.getPublicState - state.images:", state.images);
     return state;
   }
 

@@ -30,8 +30,17 @@ const PetSchema = new Schema<PetEntity>(
       type: [String],
     },
     image_url: {
-      type: String,
-      required: [true, "Por favor, proporciona una URL de imagen para esta mascota."],
+      type: [String],
+      required: [true, "Por favor, proporciona al menos una URL de imagen para esta mascota."],
+      validate: {
+        validator: function(v: string[]) {
+          return Array.isArray(v) && v.length > 0;
+        },
+        message: "Debe haber al menos una imagen en image_url"
+      }
+    },
+    images: {
+      type: [String],
     },
     likes: {
       type: [String],
