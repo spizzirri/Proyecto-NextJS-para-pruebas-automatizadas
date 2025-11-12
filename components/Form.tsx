@@ -34,6 +34,17 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState("");
   const [previewImage, setPreviewImage] = useState<string | null>(null); // Estado para la imagen en preview
+  
+  // Dataset de especies predefinidas
+  const speciesOptions = [
+    "Perro",
+    "Gato",
+    "Conejo",
+    "Hamster",
+    "Pájaro",
+    "Pajaro"
+  ];
+  
   // Array de imágenes con nombre y datos base64
   interface ImageData {
     name: string;
@@ -316,8 +327,15 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
             name="species"
             value={form.species}
             onChange={handleChange}
+            list="species-list"
+            autoComplete="off"
             required
           />
+          <datalist id="species-list">
+            {speciesOptions.map((option, index) => (
+              <option key={index} value={option} />
+            ))}
+          </datalist>
 
           <label htmlFor="age">Edad</label>
           <input
