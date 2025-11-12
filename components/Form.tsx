@@ -121,9 +121,6 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
   /* The POST method adds a new entry in the mongodb database. */
   const postData = async (form: FormData) => {
     try {
-      console.log("Form.postData - Enviando form:", form);
-      console.log("Form.postData - form.image_url:", form.image_url);
-      console.log("Form.postData - form.images:", form.images);
       
       const res = await fetch("/api/pets", {
         method: "POST",
@@ -287,8 +284,6 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
         image_url: allImages, // image_url es ahora un array
         images: allImages,
       };
-      console.log("Form - Enviando imágenes:", allImages.length, allImages);
-      console.log("Form - image_url (array):", allImages);
       forNewPet ? postData(formToSubmit) : putData(formToSubmit);
     } else {
       setErrors({ errs });

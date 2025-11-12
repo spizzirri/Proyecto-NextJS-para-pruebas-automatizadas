@@ -30,40 +30,27 @@ class BaseMongoRepository<T extends EntityModel> implements IRepository<T> {
   async create(entity: T): Promise<T> {
     try {
       const persistenceData = this.mapToPersistence(entity);
-      console.log("BaseMongoRepository.create - persistenceData completo:", JSON.stringify(persistenceData, null, 2).substring(0, 1000));
-      console.log("BaseMongoRepository.create - persistenceData.images:", persistenceData.images);
-      console.log("BaseMongoRepository.create - ¿images en persistenceData?:", 'images' in persistenceData);
       
       // Verificar que images esté presente antes de guardar
       if (!('images' in persistenceData)) {
-        console.warn("BaseMongoRepository.create - WARNING: images no está en persistenceData, agregándolo...");
         persistenceData.images = (entity as any).images || [];
       }
       
       // Verificar que image_url esté presente y tenga al menos un elemento
       if (!('image_url' in persistenceData) || !Array.isArray(persistenceData.image_url) || persistenceData.image_url.length === 0) {
-        console.warn("BaseMongoRepository.create - WARNING: image_url no es válido, usando images...");
         const imagesArray = (entity as any).images || [];
         persistenceData.image_url = imagesArray.length > 0 ? imagesArray : [];
       }
       
-      console.log("BaseMongoRepository.create - persistenceData.image_url antes de crear modelo:", persistenceData.image_url);
-      console.log("BaseMongoRepository.create - persistenceData.images antes de crear modelo:", persistenceData.images);
-      
       const model = new this.model(persistenceData);
-      console.log("BaseMongoRepository.create - model.images antes de save:", model.images);
       const record = await model.save();
-      console.log("BaseMongoRepository.create - record guardado.images:", record.images);
-      console.log("BaseMongoRepository.create - record completo:", JSON.stringify(record.toObject(), null, 2).substring(0, 1000));
 
       entity.markAsCreated();
       await entity.commit();
 
       const mappedEntity = this.mapToEntity(record);
-      console.log("BaseMongoRepository.create - mappedEntity.images:", (mappedEntity as any).images);
       return mappedEntity;
     } catch (err) {
-      console.error("BaseMongoRepository.create - Error completo:", err);
       throw new MongoDBException(
         `[create] Error: ${JSON.stringify(err)}`
       );
@@ -134,7 +121,6 @@ class BaseMongoRepository<T extends EntityModel> implements IRepository<T> {
     if (!entity.isDirty()) return entity;
 
     const persistenceData = this.mapToPersistence(entity);
-    console.log("BaseMongoRepository.update - persistenceData.images:", persistenceData.images);
     
     const updated = await this.model.updateOne(
       this.isCustomId ? { _id: entity.id } : { id: entity.id },
@@ -154,7 +140,6 @@ class BaseMongoRepository<T extends EntityModel> implements IRepository<T> {
     if (!updatedEntity) {
       throw new MongoDBException(`[update] Could not retrieve updated entity ${entity.id}`);
     }
-    console.log("BaseMongoRepository.update - updatedEntity.images:", (updatedEntity as any).images);
     return updatedEntity;
   }
 
@@ -216,11 +201,6 @@ class BaseMongoRepository<T extends EntityModel> implements IRepository<T> {
         result.image_url = [];
       }
       
-      console.log("mapToPersistence - entity.images (directo):", imagesValue);
-      console.log("mapToPersistence - entity.image_url (directo):", imageUrlValue);
-      console.log("mapToPersistence - result.images:", result.images);
-      console.log("mapToPersistence - result.image_url:", result.image_url);
-      console.log("mapToPersistence - result keys:", Object.keys(result));
       return result;
     }
     const json = entity.toJSON();
@@ -230,22 +210,18 @@ class BaseMongoRepository<T extends EntityModel> implements IRepository<T> {
     } else {
       json.images = [];
     }
-    console.log("mapToPersistence - json.images:", json.images);
     return json;
   }
 
   protected mapToEntity(data: any): T {
     if (this.isCustomId) {
       const { _id, ...object } = Object.assign({}, data.toObject());
-      console.log("BaseMongoRepository.mapToEntity - object.images:", object.images);
       // Convert _id (which may be an ObjectId) to string
       const idString = _id ? String(_id) : "";
       const entity = new this.entityConstructor({ ...object, id: idString });
-      console.log("BaseMongoRepository.mapToEntity - entity.images:", (entity as any).images);
       return entity;
     }
     const obj = Object.assign({}, data.toObject());
-    console.log("BaseMongoRepository.mapToEntity - obj.images:", obj.images);
     return new this.entityConstructor(obj);
   }
 

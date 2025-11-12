@@ -33,8 +33,6 @@ export class PetEntity extends EntityModel {
     this.images = Array.isArray(data?.images) ? data.images : (data?.images ? [data.images] : []);
     this.likes = data?.likes || [];
     this.dislikes = data?.dislikes || [];
-    console.log("PetEntity constructor - data.images:", data?.images);
-    console.log("PetEntity constructor - this.images:", this.images);
   }
 
   // Sobrescribir toJSON para asegurar que images e image_url siempre se incluyan como arrays
@@ -50,10 +48,6 @@ export class PetEntity extends EntityModel {
     } else {
       json.image_url = [];
     }
-    console.log("PetEntity.toJSON - this.images:", this.images);
-    console.log("PetEntity.toJSON - this.image_url:", this.image_url);
-    console.log("PetEntity.toJSON - json.images:", json.images);
-    console.log("PetEntity.toJSON - json.image_url:", json.image_url);
     return json;
   }
 }

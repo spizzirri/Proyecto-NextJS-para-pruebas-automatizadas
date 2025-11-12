@@ -63,7 +63,6 @@ abstract class EntityModel {
       if (hasChanged) {
         (this[key] as any) = newValue;
         this._dirty = true;
-        console.log(`EntityModel.update - Campo ${String(key)} actualizado:`, newValue);
       }
     }
 
@@ -106,9 +105,7 @@ abstract class EntityModel {
         state.images = petEntity.images || [];
       }
     }
-    
-    console.log("EntityModel.getPublicState - keys:", keys);
-    console.log("EntityModel.getPublicState - state.images:", state.images);
+
     return state;
   }
 
