@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/router";
 import { mutate } from "swr";
 
-interface FormData {
+export interface FormData {
   name: string;
   owner_name: string;
   species: string;
@@ -15,6 +15,25 @@ interface FormData {
   dislikes: string[];
 }
 
+export class PetForm implements FormData {
+  
+  name: string;
+  owner_name: string;
+  species: string;
+  age: number;
+  poddy_trained: boolean;
+  diet: string[];
+  image_url: string[];
+  images?: string[] | undefined;
+  likes: string[];
+  dislikes: string[];
+  
+  constructor(data: FormData) {
+    Object.assign(this, data);
+  }
+}
+
+
 interface Error {
   name?: string;
   owner_name?: string;
@@ -24,11 +43,24 @@ interface Error {
 
 type Props = {
   formId: string;
-  petForm: FormData;
+  petForm?: PetForm;
   forNewPet?: boolean;
 };
 
-const Form = ({ formId, petForm, forNewPet = true }: Props) => {
+const defaultPetForm: PetForm = new PetForm({
+  name: "",
+  owner_name: "",
+  species: "",
+  age: 0,
+  poddy_trained: false,
+  diet: [],
+  image_url: [],
+  images: [],
+  likes: [],
+  dislikes: [],
+});
+
+const Form = ({ formId, petForm = defaultPetForm, forNewPet = true }: Props) => {
   const router = useRouter();
   const contentType = "application/json";
   const [errors, setErrors] = useState({});

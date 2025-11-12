@@ -1,6 +1,6 @@
 import { useRouter } from "next/router";
 import useSWR from "swr";
-import Form from "@/components/Form";
+import Form, { PetForm } from "@/components/Form";
 
 const fetcher = (url: string) =>
   fetch(url)
@@ -20,18 +20,7 @@ export default function EditPetComponent() {
   if (isLoading) return <p>Cargando...</p>;
   if (!pet) return null;
 
-  const petForm = {
-    name: pet.name,
-    owner_name: pet.owner_name,
-    species: pet.species,
-    age: pet.age,
-    poddy_trained: pet.poddy_trained,
-    diet: pet.diet,
-    image_url: pet.image_url,
-    images: pet.images,
-    likes: pet.likes,
-    dislikes: pet.dislikes,
-  };
+  const petForm = new PetForm(pet);
 
   return <Form formId="edit-pet-form" petForm={petForm} forNewPet={false} />;
 }
