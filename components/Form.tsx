@@ -378,6 +378,9 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
             {images.length > 0 && (
               <ul
                 style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  gap: "0.5rem",
                   listStyle: "none",
                   padding: 0,
                   margin: "1rem 0 0 0",
@@ -395,6 +398,7 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
                       backgroundColor: "#f5f5f5",
                       borderRadius: "4px",
                       border: "1px solid #ddd",
+                      width: "25%",
                     }}
                   >
                     <span
