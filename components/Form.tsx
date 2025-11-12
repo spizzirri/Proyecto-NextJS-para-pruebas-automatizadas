@@ -33,6 +33,7 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
   const contentType = "application/json";
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState("");
+  const [previewImage, setPreviewImage] = useState<string | null>(null); // Estado para la imagen en preview
   // Array de imágenes con nombre y datos base64
   interface ImageData {
     name: string;
@@ -397,14 +398,25 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
                     }}
                   >
                     <span
+                      onClick={() => {
+                        // Si la imagen ya está en preview, ocultarla; si no, mostrarla
+                        if (previewImage === image.data) {
+                          setPreviewImage(null);
+                        } else {
+                          setPreviewImage(image.data);
+                        }
+                      }}
                       style={{
                         flex: 1,
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
                         marginRight: "0.5rem",
+                        cursor: "pointer",
+                        color: previewImage === image.data ? "#4CAF50" : "inherit",
+                        fontWeight: previewImage === image.data ? "bold" : "normal",
                       }}
-                      title={image.name}
+                      title={`Click para ${previewImage === image.data ? "ocultar" : "ver"} la imagen`}
                     >
                       {image.name}
                     </span>
@@ -486,6 +498,42 @@ const Form = ({ formId, petForm, forNewPet = true }: Props) => {
           <li key={index}>{err}</li>
         ))}
       </div>
+      
+      {/* Modal para preview de imagen */}
+      {previewImage && (
+        <div
+          onClick={() => setPreviewImage(null)}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.8)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            cursor: "pointer",
+          }}
+        >
+          <img
+            src={previewImage}
+            alt="Preview"
+            onClick={(e) => {
+              e.stopPropagation();
+              setPreviewImage(null);
+            }}
+            style={{
+              maxWidth: "90%",
+              maxHeight: "90%",
+              objectFit: "contain",
+              borderRadius: "8px",
+              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.5)",
+            }}
+          />
+        </div>
+      )}
     </>
   );
 };
