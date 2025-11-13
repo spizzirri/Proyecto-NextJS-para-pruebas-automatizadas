@@ -324,31 +324,37 @@ const Form = ({ formId, petForm = defaultPetForm, forNewPet = true }: Props) => 
 
   return (
     <>
-      <form id={formId} onSubmit={handleSubmit} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem" }}>
+      <form id={formId} role="form" onSubmit={handleSubmit} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem" }}>
         {/* Columna 1: Nombre a Dieta */}
         <div style={{ display: "flex", flexDirection: "column", gap: "0.2em" }}>
-          <label htmlFor="name">Nombre</label>
-          <input
-            type="text"
-            maxLength={20}
-            name="name"
-            value={form.name}
-            onChange={handleChange}
-            required
-          />
+          <label htmlFor="name">
+            Nombre
+            <input
+              id="name"
+              type="text"
+              maxLength={20}
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              required
+            /> 
+          </label>
 
           <label htmlFor="owner_name">Dueño</label>
           <input
+            id="owner_name"
             type="text"
             maxLength={20}
             name="owner_name"
             value={form.owner_name}
             onChange={handleChange}
+            placeholder="Dueño"
             required
           />
 
           <label htmlFor="species">Especie</label>
           <input
+            id="species"
             type="text"
             maxLength={30}
             name="species"
@@ -366,6 +372,7 @@ const Form = ({ formId, petForm = defaultPetForm, forNewPet = true }: Props) => 
 
           <label htmlFor="age">Edad</label>
           <input
+            id="age"
             type="number"
             name="age"
             value={form.age}
