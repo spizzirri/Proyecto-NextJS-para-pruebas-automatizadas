@@ -13,7 +13,11 @@
 1. Probar un componente que ya existe.
     
     1. Pensar que probar.
+        1. Roles --> textbox, combobox, checkbox, spinbutton, button
+        2. findByText vs findByLabelText
+        3. cleanUp en el afterEach
     2. Descubrir dependencias necesarias.
+        1. vi.mock
     3. Ciclos de renderizado y respuestas asyncronicas.
 
 2. Interacciones del usuario.
