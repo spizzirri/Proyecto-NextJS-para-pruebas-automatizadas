@@ -12,6 +12,8 @@
 
 > npm run stop:database frena el contenedor
 
+#### WAI-ARIA Roles
+https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Roles
 
 ---
 ---
